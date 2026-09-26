@@ -2,19 +2,65 @@
 
 이 프로젝트는 [Semantic Versioning](https://semver.org/)을 따릅니다.
 
-## [Unreleased]
-
-### Added
-- 신규 에이전트/스킬 생성 전 중복 검토 단계 (Phase 3-0, Phase 4-0)
-- `references/agent-design-patterns.md` "에이전트 재사용 설계" 섹션
-- `references/skill-writing-guide.md` §9 "스킬 재사용 설계"
+## [2.1.0] - 2026-09-26
 
 ### Changed
-- Phase 선택 매트릭스에 3-0/4-0 명시
-- Phase 2-3에 재사용 검토 단계 포인터 추가
-- 산출물 체크리스트에 재사용 검토 항목 2개 추가
 
----
+- **모델 정책 개편: "세션 모델 상속 기본" → "업무 특성 기반 티어 선택"** — 에이전트를 정의할 때 업무의 복잡도·작업 기간·자율성·응답 속도 4가지 기준으로 fable(계획을 세워 장기간 자율 실행하는 최고 난도 업무) / opus(설계·코드 생성·복잡한 분석·교차 검증) / sonnet(로그 분석·형식 변환·단순 수집 같은 일상 업무)을 에이전트별로 고르도록 변경. 애매하면 sonnet, 근거 없는 일괄 지정 금지 원칙 유지
+- **스킬 문장 정리** — harness 스킬 본문과 레퍼런스 9종의 번역투를 걷어내고 용어를 통일
+- **버전 정합성 2.1.0 동기화** — `.claude-plugin/plugin.json`·`marketplace.json`·README 뱃지(EN/KO)를 2.1.0으로 통일
+
+### Added
+
+- **`references/model-selection-guide.md`** — 티어별 핵심 역할·적합 업무·선택 상황, 티어 구분 기준, 하네스 적용 규칙(업무 단위 판단, 계층 분리, 워크플로 단계별 적용) 상세 가이드
+- **생성물 언어 규칙** — 생성하는 에이전트·스킬·오케스트레이터는 스킬 문서의 언어가 아니라 사용자가 대화에 쓰는 언어로 작성 (#28)
+- **단계 경계 산출물 동결** — 지속형 에이전트 협업에서 다음 단계를 시작하기 전에 완료 보고를 모두 확인하고, 동결을 알리고, 산출물 해시를 기록해 최종 검증에서 다시 확인 (#53)
+- **에이전트·스킬 중복 검토** — 새 에이전트·스킬을 만들기 전에 기존 것과 겹치는지 확인하고, 겹치면 기존 것을 확장. v1.x에 병합된 기여(#17)를 v2 구조로 이식
+
+### Fixed
+
+- **다시 시도해도 소용없는 실패 구분** — 사용량 한도 소진·인증 만료·권한 거부는 재시도하지 않고, 부분 산출물로 진행 정도를 확인해 누락을 파일로 기록하고 보고. 오케스트레이터는 확인한 사실만 대신 반영하고 에이전트의 판단은 추측해 채우지 않음 (#53)
+- **`tools:` 지정 시 주의 사항** — 산출물을 고치는 에이전트에 Edit가 빠지는 문제, 지연 로딩 도구가 주입되지 않을 수 있는 문제 (#53)
+- **설치 명령 오류** — README·quickstart의 `harness@harness`를 `harness@harness-marketplace`로 수정 (#46)
+- **marketplace 소유자 이메일** — v2 브랜치에서 빈 값으로 돌아간 `owner.email`을 main의 값으로 유지
+
+## [2.0.0] - 2026-07-19
+
+전면 재구축 (ground-up rebuild). v1의 전제였던 실험적 Agent Teams API가 현행 Claude Code에서 사라졌고, 결정적 오케스트레이션을 위한 Workflow 도구가 새로 추가된 환경 변화에 맞춰 모든 것을 다시 설계했다.
+
+### Breaking / Fixed
+
+- **`TeamCreate`/`TeamDelete`/`team_name` 전면 제거** — 현행 런타임에 존재하지 않는 API. 세션의 단일 암묵 팀 + `Agent(name:)` + `SendMessage` 구조로 전 템플릿 재작성. v1 오케스트레이터는 이 API를 호출하다 단일 에이전트 실행으로 조용히 퇴화하는 실질적 브로큰 상태였다
+- **`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` 의존 제거** — 플래그 안내 문서(`docs/experimental-dependency.md`) 및 모든 참조 삭제. v2는 플래그 없이 동작한다
+- **`model: "opus"` 전 에이전트 강제 정책 폐기** — 세션 모델 상속이 기본. 오버라이드는 근거(기계적 작업의 비용 절감 / 최고 난도 검증)가 있을 때만 명시
+- **README-실체 불일치 해소** — v1 README가 홍보하던 `/harness:evolve` 스킬이 실제로는 존재하지 않았다. v2에서 실제 스킬로 출시
+- **"세션당 한 팀" 제약 및 팀 재구성 절차 삭제** — 제약 자체가 소멸
+
+### Added
+
+- **3중 실행 모드 체계** — 워크플로우 오케스트레이션(신규) / 퍼시스턴트 에이전트 협업(v1 팀 모드 대체) / 서브에이전트 위임. 모드 선택 기준을 "팀 크기"에서 **"제어 흐름의 결정성"**으로 재정의
+- **워크플로우 오케스트레이션 모드** — `Workflow` 도구 기반: `pipeline()`/`parallel()`, 구조화 출력 스키마(파싱 불필요), `budget` 연동 규모 조절, `resumeFromRunId` 부분 재실행, 커스텀 `agentType`, `isolation: worktree`
+- **품질 패턴 카탈로그** — 적대적 검증, 관점 분산 검증, 심판 패널, loop-until-dry, 다각 스윕, 완전성 비평가, 침묵 상한 금지
+- **`skills/evolve` (`/harness:evolve`)** — 델타 수집 → 피드백 유형 분류 → 일반화 반영 → 변경 이력 갱신 → 진화 보고의 5단계 진화 스킬. 관찰 기반 진화 신호(반복 피드백, 오케스트레이터 우회 흔적) 감지 포함
+- **v1 → v2 마이그레이션 경로** — Phase 0에서 v1 산출물 자동 감지, `docs/migration-v1-to-v2.md` + `references/execution-modes.md`에 변환 매핑 표
+- **신규 레퍼런스** — `execution-modes.md`(3중 모드 + 마이그레이션), `workflow-recipes.md`(스크립트 스켈레톤 6종 + 함정 12종 체크리스트)
+- **데이터 전달 프로토콜에 "구조화 반환" 추가** — 워크플로우 schema 기반 타입 안전 전달을 v2 권장 기본으로
+- **워크플로우 기반 A/B 테스트** — 스킬 검증(with/without)을 워크플로우 스크립트로 구성하는 레시피
+- **에이전트 정의 확장** — 프론트매터 `tools`(읽기 전용 리뷰어 등 도구 제한), `재호출 지침` 섹션 표준화
+
+### Changed
+
+- **6패턴 각각에 v2 권장 실행 모드 매핑** — 팬아웃/파이프라인은 워크플로우 1순위, 감독자는 퍼시스턴트+태스크, 계층 위임은 워크플로우 1단계 중첩 등
+- **오케스트레이터 템플릿 3종 전면 재작성** — A: 워크플로우(정찰→실행→종합, run_meta/resume 포함), B: 퍼시스턴트(스폰+태스크+피드백 루프), C: 서브에이전트
+- **Phase 7 재구성** — 운영/유지보수는 harness 스킬에 유지, 진화(피드백 반영)는 evolve 스킬로 분리
+- 산출물 체크리스트에 v1 잔재 검증·워크플로우 함정 검증 항목 추가
+- `references/agent-design-patterns.md` → `team-patterns.md`로 개편 (품질 패턴 흡수), `team-examples.md` 5종 예시를 v2 문법으로 재작성
+
+### Removed
+
+- **마케팅/사이트 자산 제거** — `harness_banner.png`·`harness_icon.png`·`harness_social.png`·`harness_team.png`(합계 약 9MB), `index.html`(랜딩 페이지), `privacy.html`
+- **저장소 운영 부산물 제거** — 런치 캠페인용 `_workspace/` 산출물, 마케팅 에이전트 정의(`.claude/agents/launch-strategist` 등), `docs/experimental-dependency.md`
+- README_JA (일본어 README) — 유지보수 부담 대비 효용 저조. EN/KO 2종 유지
 
 ## [1.2.1] - 2026-04-18
 
